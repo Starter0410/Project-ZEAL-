@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="ZfP Prüfprotokoll-Generator", layout="wide")
 
-# CSS für zentrierten, nicht-abgeschnittenen Titel, kompakte Schriften und saubere Feld-Labels
+# CSS für saubere zentrierte Titel ohne Abschneiden, kompakte Schriften und Feld-Labels
 st.markdown("""
     <style>
         .block-container {
@@ -17,15 +17,15 @@ st.markdown("""
         .main-title {
             text-align: center;
             width: 100%;
-            font-size: 1.8rem !important;
+            font-size: 1.6rem !important;
             font-weight: 700;
-            white-space: nowrap;
-            overflow: visible;
+            margin-bottom: 0.2rem;
         }
         .sub-title {
             text-align: center;
             width: 100%;
             color: #666666;
+            font-size: 0.95rem;
             margin-bottom: 1.5rem;
         }
         p, .stTextInput label, .stSelectbox label, .stTextArea label { 
@@ -38,7 +38,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Perfekt zentrierter Titel (ohne Abschneiden)
+# Zentrierter Titel (vollständig sichtbar)
 st.markdown("<div class='main-title'>🔍 ZfP Prüfprotokoll-Generator</div>", unsafe_allow_html=True)
 st.markdown("<div class='sub-title'>Auftrag eingeben, Daten prüfen und Parameter erfassen.</div>", unsafe_allow_html=True)
 
