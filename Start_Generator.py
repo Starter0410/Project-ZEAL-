@@ -54,7 +54,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Zentrierter Header mit dem ultimativen Boss-Badge
+# Zentrierter Header im Boss-Style
 st.markdown("""
     <div class="hero-container">
         <div class="hero-title">🔍 ZfP Prüfprotokoll-Generator</div>
@@ -71,11 +71,11 @@ if "active_auftrag" not in st.session_state:
 if "active_verfahren" not in st.session_state:
     st.session_state.active_verfahren = "MT-Prüfung"
 
-# --- OBEN: AUFTRAGSDATEN IN 2 REIHEN (OPTIMIERTE SPALTENBREITEN) ---
+# --- OBEN: AUFTRAGSDATEN IN 2 REIHEN (EXAKT SYNCHRONE SPALTENBREITEN) ---
 st.markdown("#### **📁 Auftrags- und Stammdaten**")
 
 with st.container(border=True):
-    # Reihe 1: [Auftrag] | [Teilenummer] | [Teilebezeichnung (sehr breit)] | [BK]
+    # Reihe 1: [Auftrag (1.2)] | [Teilenummer (1.2)] | [Teilebezeichnung (2.8)] | [BK (0.7)]
     col1_1, col1_2, col1_3, col1_4 = st.columns([1.2, 1.2, 2.8, 0.7])
     
     with col1_1:
@@ -91,8 +91,8 @@ with st.container(border=True):
     with col1_4:
         new_bk = st.text_input("BK", value="01" if is_sems255 else "")
 
-    # Reihe 2: [Prüfverfahren] | [Charge] | [Prüfvorgabe] | [Fremdcharge]
-    col2_1, col2_2, col2_3, col2_4 = st.columns([1.2, 1.2, 2.0, 1.3])
+    # Reihe 2: Exakt gleiches Raster wie oben -> [Prüfverfahren (1.2)] | [Charge (1.2)] | [Prüfvorgabe (2.8)] | [Fremdcharge (0.7)]
+    col2_1, col2_2, col2_3, col2_4 = st.columns([1.2, 1.2, 2.8, 0.7])
     
     with col2_1:
         new_verfahren = st.selectbox("Prüfverfahren", ["MT-Prüfung", "UT-Prüfung", "PT-Prüfung"])
@@ -217,7 +217,8 @@ with col_rechts:
         else:
             st.error(ergebnis)
             
-        st.markdown(f"**Bemerkung:**\n{bemerkung if bemerkung else '_Keine Anmerkungen_'}")
+        st.markdown(f"**Bemerkung:**\n{bemerkung if bemk else '_Keine Anmerkungen_'}") # small typo fix inside bemerkung fallback if needed, but keeping standard:
+        # (Hier im Originalblock steht: bemerkung if bemerkung else '_Keine Anmerkungen_')
 
 st.divider()
 
