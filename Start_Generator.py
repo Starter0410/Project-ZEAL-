@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="ZfP Prüfprotokoll-Generator", layout="wide")
 
-# CSS für absolut saubere, zentrierte Überschriften ohne Abschneiden
+# CSS für zentrierten Header, schrägen Creator-Badge und saubere Labels
 st.markdown("""
     <style>
         .block-container {
@@ -14,22 +14,35 @@ st.markdown("""
             padding-left: 1.5rem;
             padding-right: 1.5rem;
         }
-        .centered-header {
+        .hero-container {
             text-align: center;
             width: 100%;
-            margin-bottom: 0px;
-        }
-        .centered-header h1 {
-            font-size: 1.8rem !important;
-            color: #262730;
-            display: inline-block;
-        }
-        .centered-subheader {
-            text-align: center;
-            width: 100%;
-            color: #555555;
-            font-size: 1rem;
+            margin-top: 1rem;
             margin-bottom: 1.5rem;
+        }
+        .hero-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #111111;
+            margin-bottom: 0.3rem;
+        }
+        .hero-subtitle {
+            font-size: 1rem;
+            color: #666666;
+            margin-bottom: 0.8rem;
+        }
+        .creator-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-style: italic;
+            letter-spacing: 1px;
+            color: #555555;
+            background-color: #f1f3f5;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
         }
         p, .stTextInput label, .stSelectbox label, .stTextArea label { 
             font-size: 11px !important;
@@ -41,13 +54,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Perfekt zentrierter Titel mit Icon (ohne Anker-Link und ohne Abschneiden)
+# Zentrierter Header mit schrägem @Starter x NeoCore Badge
 st.markdown("""
-    <div class="centered-header">
-        <h1>🔍 ZfP Prüfprotokoll-Generator</h1>
-    </div>
-    <div class="centered-subheader">
-        Auftrag eingeben, Daten prüfen und Parameter erfassen.
+    <div class="hero-container">
+        <div class="hero-title">🔍 ZfP Prüfprotokoll-Generator</div>
+        <div class="hero-subtitle">Auftrag eingeben, Daten prüfen und Parameter erfassen.</div>
+        <div class="creator-badge">@Starter x NeoCore</div>
     </div>
 """, unsafe_allow_html=True)
 
