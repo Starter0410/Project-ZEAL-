@@ -54,12 +54,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Zentrierter Header mit schrägem @Starter x NeoCore Badge
+# Zentrierter Header mit dem ultimativen Boss-Badge
 st.markdown("""
     <div class="hero-container">
         <div class="hero-title">🔍 ZfP Prüfprotokoll-Generator</div>
         <div class="hero-subtitle">Auftrag eingeben, Daten prüfen und Parameter erfassen.</div>
-        <div class="creator-badge">@Starter x NeoCore</div>
+        <div class="creator-badge">@starter // built different - a new area</div>
     </div>
 """, unsafe_allow_html=True)
 
