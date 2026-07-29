@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="ZfP Prüfprotokoll-Generator", layout="wide")
 
-# CSS nur für die Feld-Labels und kompakten Container (keine Experimente am Titel)
+# CSS für absolut saubere, zentrierte Überschriften ohne Abschneiden
 st.markdown("""
     <style>
         .block-container {
@@ -13,6 +13,23 @@ st.markdown("""
             padding-bottom: 1rem;
             padding-left: 1.5rem;
             padding-right: 1.5rem;
+        }
+        .centered-header {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 0px;
+        }
+        .centered-header h1 {
+            font-size: 1.8rem !important;
+            color: #262730;
+            display: inline-block;
+        }
+        .centered-subheader {
+            text-align: center;
+            width: 100%;
+            color: #555555;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
         }
         p, .stTextInput label, .stSelectbox label, .stTextArea label { 
             font-size: 11px !important;
@@ -24,9 +41,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Originaler, sauberer Streamlit-Titel (100% stabil und ohne Darstellungsfehler)
-st.title("🔍 ZfP Prüfprotokoll-Generator")
-st.write("Auftrag eingeben, Daten prüfen und Parameter erfassen.")
+# Perfekt zentrierter Titel mit Icon (ohne Anker-Link und ohne Abschneiden)
+st.markdown("""
+    <div class="centered-header">
+        <h1>🔍 ZfP Prüfprotokoll-Generator</h1>
+    </div>
+    <div class="centered-subheader">
+        Auftrag eingeben, Daten prüfen und Parameter erfassen.
+    </div>
+""", unsafe_allow_html=True)
 
 st.divider()
 
