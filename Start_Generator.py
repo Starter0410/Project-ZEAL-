@@ -4,12 +4,12 @@ import pandas as pd
 
 st.set_page_config(page_title="ZfP Prüfprotokoll-Generator", layout="wide")
 
-# CSS für maximale Bildschirmbreite und kompakte, saubere Schriftgrößen
+# CSS für korrekte Abstände oben und optimale Spaltennutzung
 st.markdown("""
     <style>
         .block-container {
             max-width: 98% !important;
-            padding-top: 1rem;
+            padding-top: 2rem;
             padding-bottom: 1rem;
             padding-left: 1.5rem;
             padding-right: 1.5rem;
@@ -32,8 +32,8 @@ st.divider()
 df_auftraege = db.get_all_auftraege_df()
 db_auftrag_liste = df_auftraege["auftrag_nr"].tolist() if not df_auftraege.empty else []
 
-# --- SPALTENVERHÄLTNIS ---
-col_links, col_mitte, col_rechts = st.columns([1.1, 1.3, 1.6])
+# --- SPALTENVERHÄLTNIS (Links etwas breiter für lange Bezeichnungen) ---
+col_links, col_mitte, col_rechts = st.columns([1.3, 1.3, 1.5])
 
 # --- SPALTE 1: AUFTRAG ERSTELLEN & AUSWÄHLEN (LINKS) ---
 with col_links:
@@ -47,15 +47,11 @@ with col_links:
     with st.container(border=True):
         st.markdown("#### **➕ Auftrag erfassen / suchen**")
         
-        # Komplett leerer Start für den Vorführeffekt
         new_nr = st.text_input("Auftrags-Nr.* (z.B. SEMS255)", value="")
-        
-        # Prüfen ob Vorführeffekt-Beispiel greift (oder Live-Tippen)
         is_sems255 = (new_nr.strip().upper() == "SEMS255")
         
         new_verfahren = st.selectbox("Prüfverfahren wählen", ["MT-Prüfung", "UT-Prüfung", "PT-Prüfung"])
         
-        # Felder füllen sich automatisch, sobald SEMS255 (oder Teile davon) getippt wird
         new_teil = st.text_input("Teilenummer", value="210120" if is_sems255 else "")
         new_bez = st.text_input("Teilebezeichnung", value="R=3D-20,80-S-WPHY70-42\"-0.600\"-SEG_FBE" if is_sems255 else "")
         new_charge = st.text_input("Charge", value="1XEFT" if is_sems255 else "")
@@ -87,7 +83,6 @@ with col_links:
 
     st.markdown("---")
     
-    # Alternativ aus echter DB wählen
     select_box_liste = ["-- Bitte wählen --"] + db_auftrag_liste
     selected_order_nr = st.selectbox("Oder aus DB wählen:", select_box_liste)
     if selected_order_nr != "-- Bitte wählen --" and selected_order_nr != st.session_state.active_auftrag:
@@ -95,7 +90,6 @@ with col_links:
         st.rerun()
 
     order_data = None
-    # Entweder wurde der Button geklickt / Enter gedrückt oder es ist das Vorführ-Beispiel
     current_active = st.session_state.active_auftrag if st.session_state.active_auftrag else new_nr.strip()
 
     if current_active != "":
@@ -237,7 +231,7 @@ with col_rechts:
         else:
             st.error(ergebnis)
             
-        st.markdown(f"**Bemerkung:**\n{bemerkung if bemerkung else '_Keine Anmerkungen_'}")
+        st.markdown(f"**Bemerkung:**\n{bemerkung if bemkund else '_Keine Anmerkungen_'}") if 'bemkund' not in locals() else st.markdown(f"**Bemerkung:**\n{bemerkung if bemerkung else '_Keine Anmerkungen_'}")
 
 st.divider()
 
