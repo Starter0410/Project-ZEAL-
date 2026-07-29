@@ -24,15 +24,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🔍 ZfP Prüfprotokoll-Generator")
-st.write("Auftrag erfassen, Verfahren wählen, Parameter ausfüllen und Vorschau prüfen.")
+st.write("Auftrag eingeben, Verfahren wählen, Parameter ausfüllen und Vorschau prüfen.")
 
 st.divider()
 
 # Aufträge aus DB laden
 df_auftraege = db.get_all_auftraege_df()
-auftrag_liste = ["-- Bitte wählen --"] + df_auftraege["auftrag_nr"].tolist() if not df_auftraege.empty else ["-- Bitte wählen --"]
+db_auftrag_liste = df_auftraege["auftrag_nr"].tolist() if not df_auftraege.empty else []
 
-# --- SPALTENVERHÄLTNIS OPTIMIERT (Nutzt den Platz besser) ---
+# --- SPALTENVERHÄLTNIS ---
 col_links, col_mitte, col_rechts = st.columns([1.1, 1.3, 1.6])
 
 # --- SPALTE 1: AUFTRAG ERSTELLEN & AUSWÄHLEN (LINKS) ---
@@ -40,18 +40,22 @@ with col_links:
     st.subheader("📁 Auftrag & Verfahren")
     
     if "active_auftrag" not in st.session_state:
-        st.session_state.active_auftrag = "-- Bitte wählen --"
+        st.session_state.active_auftrag = ""
     if "active_verfahren" not in st.session_state:
         st.session_state.active_verfahren = "MT-Prüfung"
 
     with st.container(border=True):
-        st.markdown("#### **➕ Neuen Auftrag anlegen**")
+        st.markdown("#### **➕ Auftrag erfassen / suchen**")
         
-        new_nr = st.text_input("Auftrags-Nr.*", value="SEMS255")
-        is_sems255 = (new_nr.strip() == "SEMS255")
+        # Komplett leerer Start für den Vorführeffekt
+        new_nr = st.text_input("Auftrags-Nr.* (z.B. SEMS255)", value="")
+        
+        # Prüfen ob Vorführeffekt-Beispiel greift (oder Live-Tippen)
+        is_sems255 = (new_nr.strip().upper() == "SEMS255")
         
         new_verfahren = st.selectbox("Prüfverfahren wählen", ["MT-Prüfung", "UT-Prüfung", "PT-Prüfung"])
         
+        # Felder füllen sich automatisch, sobald SEMS255 (oder Teile davon) getippt wird
         new_teil = st.text_input("Teilenummer", value="210120" if is_sems255 else "")
         new_bez = st.text_input("Teilebezeichnung", value="R=3D-20,80-S-WPHY70-42\"-0.600\"-SEG_FBE" if is_sems255 else "")
         new_charge = st.text_input("Charge", value="1XEFT" if is_sems255 else "")
@@ -83,14 +87,19 @@ with col_links:
 
     st.markdown("---")
     
-    selected_order_nr = st.selectbox("Oder bestehenden wählen:", auftrag_liste)
+    # Alternativ aus echter DB wählen
+    select_box_liste = ["-- Bitte wählen --"] + db_auftrag_liste
+    selected_order_nr = st.selectbox("Oder aus DB wählen:", select_box_liste)
     if selected_order_nr != "-- Bitte wählen --" and selected_order_nr != st.session_state.active_auftrag:
         st.session_state.active_auftrag = selected_order_nr
         st.rerun()
 
     order_data = None
-    if st.session_state.active_auftrag != "-- Bitte wählen --":
-        if st.session_state.active_auftrag == "SEMS255":
+    # Entweder wurde der Button geklickt / Enter gedrückt oder es ist das Vorführ-Beispiel
+    current_active = st.session_state.active_auftrag if st.session_state.active_auftrag else new_nr.strip()
+
+    if current_active != "":
+        if current_active.upper() == "SEMS255":
             order_data = {
                 "auftrag_nr": "SEMS255",
                 "teile_nr": "210120",
@@ -101,7 +110,7 @@ with col_links:
                 "pruefvorgabe": "QP-2026-70_Rev.1"
             }
         else:
-            match_df = df_auftraege[df_auftraege["auftrag_nr"] == st.session_state.active_auftrag]
+            match_df = df_auftraege[df_auftraege["auftrag_nr"] == current_active]
             if not match_df.empty:
                 order_data = match_df.iloc[0].to_dict()
                 if "bk" not in order_data:
@@ -115,8 +124,10 @@ with col_links:
                 f"• **Charge:** {order_data['charge']} (Fremd: {order_data['fremdcharge']})\n"
                 f"• **Vorgabe:** {order_data['pruefvorgabe']}"
             )
+        else:
+            st.info(f"**Aktiver Auftrag:** `{current_active}` (Neu / Manuell)")
     else:
-        st.warning("Bitte Auftrag anlegen oder wählen.")
+        st.warning("Bitte gib oben einen Auftrag ein (z.B. SEMS255).")
 
 # --- SPALTE 2: PARAMETER JE NACH GEWÄHLTEM VERFAHREN (MITTE) ---
 with col_mitte:
@@ -127,8 +138,10 @@ with col_mitte:
     ergebnis = "Without objection"
     bemerkung = ""
 
-    if st.session_state.active_auftrag == "-- Bitte wählen --":
-        st.warning("Bitte erst links einen Auftrag anlegen oder auswählen.")
+    current_active = st.session_state.active_auftrag if st.session_state.active_auftrag else new_nr.strip()
+
+    if current_active == "":
+        st.warning("Bitte erst links einen Auftrag eingeben.")
     else:
         if verfahren_titel == "MT-Prüfung":
             normen_mt = db.get_stammdaten_liste("MT", "Prüf-Norm")
@@ -196,7 +209,9 @@ with col_rechts:
         
         st.markdown("---")
         
-        if st.session_state.active_auftrag != "-- Bitte wählen --" and order_data:
+        current_active = st.session_state.active_auftrag if st.session_state.active_auftrag else new_nr.strip()
+        
+        if current_active != "" and order_data:
             st.markdown(
                 f"**Auftrag:** `{order_data['auftrag_nr']}` | **BK:** `{order_data.get('bk', '01')}`\n\n"
                 f"• **Teile-Nr:** {order_data['teile_nr']}\n"
@@ -204,6 +219,8 @@ with col_rechts:
                 f"• **Charge:** `{order_data['charge']}` (Fremd: `{order_data['fremdcharge']}`)\n"
                 f"• **Vorgabe:** {order_data['pruefvorgabe']}"
             )
+        elif current_active != "":
+            st.markdown(f"**Auftrag:** `{current_active}` *(Manuelle Eingabe)*")
         else:
             st.markdown("*Kein Auftrag ausgewählt*")
             
@@ -225,7 +242,8 @@ with col_rechts:
 st.divider()
 
 if st.button("Protokoll final generieren", type="primary"):
-    if st.session_state.active_auftrag == "-- Bitte wählen --":
-        st.error("Bitte wähle zuerst einen Auftrag aus.")
+    current_active = st.session_state.active_auftrag if st.session_state.active_auftrag else new_nr.strip()
+    if current_active == "":
+        st.error("Bitte gib zuerst einen Auftrag ein.")
     else:
         st.success(f"Prüfprotokoll für {st.session_state.active_verfahren} erfolgreich im System gespeichert!")
