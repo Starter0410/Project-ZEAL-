@@ -4,14 +4,22 @@ import pandas as pd
 
 st.set_page_config(page_title="ZfP Prüfprotokoll-Generator", layout="wide")
 
-# Kleines CSS für kompaktere (kleinere) Schriften und Abstände
+# CSS für maximale Bildschirmbreite und kompakte, saubere Schriftgrößen
 st.markdown("""
     <style>
-        .block-container { padding-top: 1.5rem; padding-bottom: 1rem; }
-        p, .stTextInput label, .stSelectbox label { font-size: 13px !important; }
-        h1 { font-size: 1.8rem !important; }
-        h3 { font-size: 1.2rem !important; }
-        h4 { font-size: 1.0rem !important; }
+        .block-container {
+            max-width: 98% !important;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+        p, .stTextInput label, .stSelectbox label, .stTextArea label { 
+            font-size: 12px !important; 
+        }
+        h1 { font-size: 1.6rem !important; }
+        h3 { font-size: 1.1rem !important; }
+        h4 { font-size: 0.95rem !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -24,8 +32,8 @@ st.divider()
 df_auftraege = db.get_all_auftraege_df()
 auftrag_liste = ["-- Bitte wählen --"] + df_auftraege["auftrag_nr"].tolist() if not df_auftraege.empty else ["-- Bitte wählen --"]
 
-# --- SPALTENVERHÄLTNIS ---
-col_links, col_mitte, col_rechts = st.columns([0.9, 1.3, 1.8])
+# --- SPALTENVERHÄLTNIS OPTIMIERT (Nutzt den Platz besser) ---
+col_links, col_mitte, col_rechts = st.columns([1.1, 1.3, 1.6])
 
 # --- SPALTE 1: AUFTRAG ERSTELLEN & AUSWÄHLEN (LINKS) ---
 with col_links:
@@ -39,10 +47,7 @@ with col_links:
     with st.container(border=True):
         st.markdown("#### **➕ Neuen Auftrag anlegen**")
         
-        # Eingabe für Auftrags-Nr (Beispiel-Erkennung)
         new_nr = st.text_input("Auftrags-Nr.*", value="SEMS255")
-        
-        # Beispiel-Daten automatisch vorbelegen, wenn SEMS255 eingegeben wird
         is_sems255 = (new_nr.strip() == "SEMS255")
         
         new_verfahren = st.selectbox("Prüfverfahren wählen", ["MT-Prüfung", "UT-Prüfung", "PT-Prüfung"])
@@ -51,7 +56,7 @@ with col_links:
         new_bez = st.text_input("Teilebezeichnung", value="R=3D-20,80-S-WPHY70-42\"-0.600\"-SEG_FBE" if is_sems255 else "")
         new_charge = st.text_input("Charge", value="1XEFT" if is_sems255 else "")
         new_fremd = st.text_input("Fremdcharge", value="956042" if is_sems255 else "")
-        new_bk = st.text_input("BK (Neues Feld)", value="01" if is_sems255 else "")
+        new_bk = st.text_input("BK", value="01" if is_sems255 else "")
         new_vorgabe = st.text_input("Prüfvorgabe", value="QP-2026-70_Rev.1" if is_sems255 else "")
 
         if st.button("Auftrag übernehmen", type="primary", use_container_width=True):
@@ -83,10 +88,8 @@ with col_links:
         st.session_state.active_auftrag = selected_order_nr
         st.rerun()
 
-    # Anzeige der Daten des aktiven Auftrags (Kompakt)
     order_data = None
     if st.session_state.active_auftrag != "-- Bitte wählen --":
-        # Wenn es SEMS255 ist und evtl nicht in DB liegt, direkt anzeigen
         if st.session_state.active_auftrag == "SEMS255":
             order_data = {
                 "auftrag_nr": "SEMS255",
@@ -102,7 +105,7 @@ with col_links:
             if not match_df.empty:
                 order_data = match_df.iloc[0].to_dict()
                 if "bk" not in order_data:
-                    order_data["bk"] = "01" # Fallback falls Spalte fehlt
+                    order_data["bk"] = "01"
                     
         if order_data:
             st.info(
