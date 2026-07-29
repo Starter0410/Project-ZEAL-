@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="ZfP Prüfprotokoll-Generator", layout="wide")
 
-# CSS für kompakte Schriften und saubere Feld-Labels
+# CSS für zentrierten Titel, kompakte Schriften und saubere Feld-Labels
 st.markdown("""
     <style>
         .block-container {
@@ -13,6 +13,9 @@ st.markdown("""
             padding-bottom: 1rem;
             padding-left: 1.5rem;
             padding-right: 1.5rem;
+        }
+        .centered-title {
+            text-align: center;
         }
         p, .stTextInput label, .stSelectbox label, .stTextArea label { 
             font-size: 11px !important;
@@ -25,8 +28,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🔍 ZfP Prüfprotokoll-Generator")
-st.write("Auftrag eingeben, Daten prüfen und Parameter erfassen.")
+# Zentrierter Titel-Bereich
+st.markdown("<h1 class='centered-title'>🔍 ZfP Prüfprotokoll-Generator</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>Auftrag eingeben, Daten prüfen und Parameter erfassen.</p>", unsafe_allow_html=True)
 
 st.divider()
 
@@ -36,12 +40,12 @@ if "active_auftrag" not in st.session_state:
 if "active_verfahren" not in st.session_state:
     st.session_state.active_verfahren = "MT-Prüfung"
 
-# --- OBEN: AUFTRAGSDATEN IN 2 REIHEN (JE 4 SPALTEN MIT KLARER BESCHRIFTUNG DARÜBER) ---
+# --- OBEN: AUFTRAGSDATEN IN 2 REIHEN (OPTIMIERTE SPALTENBREITEN) ---
 st.markdown("#### **📁 Auftrags- und Stammdaten**")
 
 with st.container(border=True):
-    # Reihe 1 (4 Spalten)
-    col1_1, col1_2, col1_3, col1_4 = st.columns(4)
+    # Reihe 1: [Auftrag] | [Teilenummer] | [Teilebezeichnung (sehr breit)] | [BK]
+    col1_1, col1_2, col1_3, col1_4 = st.columns([1.2, 1.2, 2.8, 0.7])
     
     with col1_1:
         new_nr = st.text_input("Auftrags-Nr.*", value="", placeholder="z.B. SEMS255")
@@ -56,8 +60,8 @@ with st.container(border=True):
     with col1_4:
         new_bk = st.text_input("BK", value="01" if is_sems255 else "")
 
-    # Reihe 2 (4 Spalten)
-    col2_1, col2_2, col2_3, col2_4 = st.columns(4)
+    # Reihe 2: [Prüfverfahren] | [Charge] | [Prüfvorgabe] | [Fremdcharge]
+    col2_1, col2_2, col2_3, col2_4 = st.columns([1.2, 1.2, 2.0, 1.3])
     
     with col2_1:
         new_verfahren = st.selectbox("Prüfverfahren", ["MT-Prüfung", "UT-Prüfung", "PT-Prüfung"])
@@ -182,7 +186,7 @@ with col_rechts:
         else:
             st.error(ergebnis)
             
-        st.markdown(f"**Bemerkung:**\n{bemerkung if bemkund else '_Keine Anmerkungen_'}") if 'bemkund' not in locals() else st.markdown(f"**Bemerkung:**\n{bemerkung if bemerkung else '_Keine Anmerkungen_'}")
+        st.markdown(f"**Bemerkung:**\n{bemerkung if bemerkung else '_Keine Anmerkungen_'}")
 
 st.divider()
 
