@@ -217,8 +217,7 @@ with col_rechts:
         else:
             st.error(ergebnis)
             
-        st.markdown(f"**Bemerkung:**\n{bemerkung if bemk else '_Keine Anmerkungen_'}") # small typo fix inside bemerkung fallback if needed, but keeping standard:
-        # (Hier im Originalblock steht: bemerkung if bemerkung else '_Keine Anmerkungen_')
+        st.markdown(f"**Bemerkung:**\n{bemerkung if bemerkung else '_Keine Anmerkungen_'}")
 
 st.divider()
 
