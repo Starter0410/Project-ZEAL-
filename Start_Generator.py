@@ -4,219 +4,170 @@ import pandas as pd
 
 st.set_page_config(page_title="ZfP Prüfprotokoll-Generator", layout="wide")
 
-# CSS für korrekte Abstände oben und optimale Spaltennutzung
+# CSS für kompakte Schriften und saubere Feld-Labels
 st.markdown("""
     <style>
         .block-container {
             max-width: 98% !important;
-            padding-top: 2rem;
+            padding-top: 1rem;
             padding-bottom: 1rem;
             padding-left: 1.5rem;
             padding-right: 1.5rem;
         }
         p, .stTextInput label, .stSelectbox label, .stTextArea label { 
-            font-size: 12px !important; 
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            color: #444444 !important;
         }
-        h1 { font-size: 1.6rem !important; }
+        h1 { font-size: 1.5rem !important; margin-bottom: 0px !important; }
         h3 { font-size: 1.1rem !important; }
-        h4 { font-size: 0.95rem !important; }
+        h4 { font-size: 0.9rem !important; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🔍 ZfP Prüfprotokoll-Generator")
-st.write("Auftrag eingeben, Verfahren wählen, Parameter ausfüllen und Vorschau prüfen.")
+st.write("Auftrag eingeben, Daten prüfen und Parameter erfassen.")
 
 st.divider()
 
-# Aufträge aus DB laden
-df_auftraege = db.get_all_auftraege_df()
-db_auftrag_liste = df_auftraege["auftrag_nr"].tolist() if not df_auftraege.empty else []
+# Session State initialisieren
+if "active_auftrag" not in st.session_state:
+    st.session_state.active_auftrag = ""
+if "active_verfahren" not in st.session_state:
+    st.session_state.active_verfahren = "MT-Prüfung"
 
-# --- SPALTENVERHÄLTNIS (Links etwas breiter für lange Bezeichnungen) ---
-col_links, col_mitte, col_rechts = st.columns([1.3, 1.3, 1.5])
+# --- OBEN: AUFTRAGSDATEN IN 2 REIHEN (JE 4 SPALTEN MIT KLARER BESCHRIFTUNG DARÜBER) ---
+st.markdown("#### **📁 Auftrags- und Stammdaten**")
 
-# --- SPALTE 1: AUFTRAG ERSTELLEN & AUSWÄHLEN (LINKS) ---
-with col_links:
-    st.subheader("📁 Auftrag & Verfahren")
+with st.container(border=True):
+    # Reihe 1 (4 Spalten)
+    col1_1, col1_2, col1_3, col1_4 = st.columns(4)
     
-    if "active_auftrag" not in st.session_state:
-        st.session_state.active_auftrag = ""
-    if "active_verfahren" not in st.session_state:
-        st.session_state.active_verfahren = "MT-Prüfung"
-
-    with st.container(border=True):
-        st.markdown("#### **➕ Auftrag erfassen / suchen**")
-        
-        new_nr = st.text_input("Auftrags-Nr.* (z.B. SEMS255)", value="")
+    with col1_1:
+        new_nr = st.text_input("Auftrags-Nr.*", value="", placeholder="z.B. SEMS255")
         is_sems255 = (new_nr.strip().upper() == "SEMS255")
         
-        new_verfahren = st.selectbox("Prüfverfahren wählen", ["MT-Prüfung", "UT-Prüfung", "PT-Prüfung"])
-        
+    with col1_2:
         new_teil = st.text_input("Teilenummer", value="210120" if is_sems255 else "")
+        
+    with col1_3:
         new_bez = st.text_input("Teilebezeichnung", value="R=3D-20,80-S-WPHY70-42\"-0.600\"-SEG_FBE" if is_sems255 else "")
-        new_charge = st.text_input("Charge", value="1XEFT" if is_sems255 else "")
-        new_fremd = st.text_input("Fremdcharge", value="956042" if is_sems255 else "")
+        
+    with col1_4:
         new_bk = st.text_input("BK", value="01" if is_sems255 else "")
-        new_vorgabe = st.text_input("Prüfvorgabe", value="QP-2026-70_Rev.1" if is_sems255 else "")
 
-        if st.button("Auftrag übernehmen", type="primary", use_container_width=True):
-            if new_nr.strip() == "":
-                st.error("Bitte Auftrags-Nr. angeben.")
-            else:
-                try:
-                    conn = db.get_connection()
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT COUNT(*) FROM auftraege WHERE auftrag_nr = ?", (new_nr,))
-                    if cursor.fetchone()[0] == 0:
-                        cursor.execute(
-                            "INSERT INTO auftraege VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            (new_nr, new_teil, new_bez, new_charge, new_fremd, new_vorgabe, new_bk)
-                        )
-                        conn.commit()
-                    conn.close()
-                except Exception:
-                    pass
-                
-                st.session_state.active_auftrag = new_nr
-                st.session_state.active_verfahren = new_verfahren
-                st.rerun()
-
-    st.markdown("---")
+    # Reihe 2 (4 Spalten)
+    col2_1, col2_2, col2_3, col2_4 = st.columns(4)
     
-    select_box_liste = ["-- Bitte wählen --"] + db_auftrag_liste
-    selected_order_nr = st.selectbox("Oder aus DB wählen:", select_box_liste)
-    if selected_order_nr != "-- Bitte wählen --" and selected_order_nr != st.session_state.active_auftrag:
-        st.session_state.active_auftrag = selected_order_nr
-        st.rerun()
+    with col2_1:
+        new_verfahren = st.selectbox("Prüfverfahren", ["MT-Prüfung", "UT-Prüfung", "PT-Prüfung"])
+        st.session_state.active_verfahren = new_verfahren
+        
+    with col2_2:
+        new_charge = st.text_input("Charge", value="1XEFT" if is_sems255 else "")
+        
+    with col2_3:
+        new_vorgabe = st.text_input("Prüfvorgabe", value="QP-2026-70_Rev.1" if is_sems255 else "")
+        
+    with col2_4:
+        new_fremd = st.text_input("Fremdcharge", value="956042" if is_sems255 else "")
 
-    order_data = None
-    current_active = st.session_state.active_auftrag if st.session_state.active_auftrag else new_nr.strip()
+current_active = st.session_state.active_auftrag if st.session_state.active_auftrag else new_nr.strip()
 
-    if current_active != "":
-        if current_active.upper() == "SEMS255":
-            order_data = {
-                "auftrag_nr": "SEMS255",
-                "teile_nr": "210120",
-                "teilebezeichnung": 'R=3D-20,80-S-WPHY70-42"-0.600"-SEG_FBE',
-                "charge": "1XEFT",
-                "fremdcharge": "956042",
-                "bk": "01",
-                "pruefvorgabe": "QP-2026-70_Rev.1"
-            }
-        else:
-            match_df = df_auftraege[df_auftraege["auftrag_nr"] == current_active]
-            if not match_df.empty:
-                order_data = match_df.iloc[0].to_dict()
-                if "bk" not in order_data:
-                    order_data["bk"] = "01"
-                    
-        if order_data:
-            st.info(
-                f"**Aktiver Auftrag:** `{order_data['auftrag_nr']}` | **Verfahren:** `{st.session_state.active_verfahren}`\n\n"
-                f"• **Teile-Nr:** {order_data['teile_nr']} | **BK:** {order_data.get('bk', '01')}\n"
-                f"• **Bez:** {order_data['teilebezeichnung']}\n"
-                f"• **Charge:** {order_data['charge']} (Fremd: {order_data['fremdcharge']})\n"
-                f"• **Vorgabe:** {order_data['pruefvorgabe']}"
-            )
-        else:
-            st.info(f"**Aktiver Auftrag:** `{current_active}` (Neu / Manuell)")
-    else:
-        st.warning("Bitte gib oben einen Auftrag ein (z.B. SEMS255).")
+st.divider()
 
-# --- SPALTE 2: PARAMETER JE NACH GEWÄHLTEM VERFAHREN (MITTE) ---
+# --- UNTEN: 2 SPALTEN (LINKS PARAMETER BEARBEITEN | RECHTS LIVE-VORSCHAU) ---
+col_mitte, col_rechts = st.columns([1.2, 1.3])
+
+# --- SPALTE 1: PARAMETER JE NACH GEWÄHLTEM VERFAHREN (LINKS UNTEN) ---
 with col_mitte:
     verfahren_titel = st.session_state.active_verfahren
-    st.subheader(f"⚙️ Parameter: {verfahren_titel}")
+    st.subheader(f"⚙️ Parameter für: {verfahren_titel}")
     
     erfasste_parameter = {}
     ergebnis = "Without objection"
     bemerkung = ""
 
-    current_active = st.session_state.active_auftrag if st.session_state.active_auftrag else new_nr.strip()
-
     if current_active == "":
-        st.warning("Bitte erst links einen Auftrag eingeben.")
+        st.warning("Bitte gib oben eine Auftrags-Nr. ein (z.B. SEMS255).")
     else:
-        if verfahren_titel == "MT-Prüfung":
-            normen_mt = db.get_stammdaten_liste("MT", "Prüf-Norm")
-            zulassungen_mt = db.get_stammdaten_liste("MT", "Zulässigkeitskrit.")
-            techniken_mt = db.get_stammdaten_liste("MT", "Magnetisierungstechn.")
-            
-            pruef_norm_mt = st.selectbox("Prüf-Norm (MT)", ["-- Bitte wählen --"] + (normen_mt if normen_mt else []))
-            zulassung_mt = st.selectbox("Zulässigkeitskrit.", ["-- Bitte wählen --"] + (zulassungen_mt if zulassungen_mt else []))
-            mag_technik = st.selectbox("Magnetisierungstechn.", ["-- Bitte wählen --"] + (techniken_mt if techniken_mt else []))
-            
-            pruefmaschine = st.text_input("Prüfmaschine", value="", placeholder="Gerät eingeben...", key="mt_masch")
-            strom = st.text_input("Magnetisierungsstrom", value="", placeholder="z.B. AC / DC...", key="mt_strom")
-            
-            st.markdown("---")
-            oberflaeche_mt = st.text_input("Oberflächenzustand", value="", placeholder="z.B. gestrahlt...", key="mt_surf")
-            ergebnis_mt = st.selectbox("Ergebnis (MT)", ["Without objection", "Not acceptable", "Conditionally acceptable"], key="mt_res")
-            bemerkung_mt = st.text_area("Bemerkung (MT)", placeholder="Details...", key="mt_bem", height=80)
+        with st.container(border=True):
+            if verfahren_titel == "MT-Prüfung":
+                normen_mt = db.get_stammdaten_liste("MT", "Prüf-Norm")
+                zulassungen_mt = db.get_stammdaten_liste("MT", "Zulässigkeitskrit.")
+                techniken_mt = db.get_stammdaten_liste("MT", "Magnetisierungstechn.")
+                
+                pruef_norm_mt = st.selectbox("Prüf-Norm (MT)", ["-- Bitte wählen --"] + (normen_mt if normen_mt else []))
+                zulassung_mt = st.selectbox("Zulässigkeitskrit.", ["-- Bitte wählen --"] + (zulassungen_mt if zulassungen_mt else []))
+                mag_technik = st.selectbox("Magnetisierungstechn.", ["-- Bitte wählen --"] + (techniken_mt if techniken_mt else []))
+                
+                pruefmaschine = st.text_input("Prüfmaschine", value="", placeholder="Gerät eingeben...", key="mt_masch")
+                strom = st.text_input("Magnetisierungsstrom", value="", placeholder="z.B. AC / DC...", key="mt_strom")
+                
+                st.markdown("---")
+                oberflaeche_mt = st.text_input("Oberflächenzustand", value="", placeholder="z.B. gestrahlt...", key="mt_surf")
+                ergebnis_mt = st.selectbox("Ergebnis (MT)", ["Without objection", "Not acceptable", "Conditionally acceptable"], key="mt_res")
+                bemerkung_mt = st.text_area("Bemerkung (MT)", placeholder="Details...", key="mt_bem", height=70)
 
-            erfasste_parameter = {"Norm": pruef_norm_mt, "Zulässigkeit": zulassung_mt, "Verfahren": mag_technik, "Oberfläche": oberflaeche_mt}
-            ergebnis = ergebnis_mt
-            bemerkung = bemerkung_mt
+                erfasste_parameter = {"Norm": pruef_norm_mt, "Zulässigkeit": zulassung_mt, "Verfahren": mag_technik, "Oberfläche": oberflaeche_mt}
+                ergebnis = ergebnis_mt
+                bemerkung = bemerkung_mt
 
-        elif verfahren_titel == "UT-Prüfung":
-            normen_ut = db.get_stammdaten_liste("UT", "Prüf-Norm")
-            koepfe_ut = db.get_stammdaten_liste("UT", "Prüfkopf / Frequenz")
-            koppel_ut = db.get_stammdaten_liste("UT", "Koppelmittel")
-            
-            pruef_norm_ut = st.selectbox("Prüf-Norm (UT)", ["-- Bitte wählen --"] + (normen_ut if normen_ut else []))
-            pruefkopf = st.selectbox("Prüfkopf / Frequenz", ["-- Bitte wählen --"] + (koepfe_ut if koepfe_ut else []))
-            koppelmittel = st.selectbox("Koppelmittel", ["-- Bitte wählen --"] + (koppel_ut if koppel_ut else []))
-            schallweg = st.text_input("Max. Schallweg", value="", placeholder="z.B. 100 mm...", key="ut_weg")
+            elif verfahren_titel == "UT-Prüfung":
+                normen_ut = db.get_stammdaten_liste("UT", "Prüf-Norm")
+                koepfe_ut = db.get_stammdaten_liste("UT", "Prüfkopf / Frequenz")
+                koppel_ut = db.get_stammdaten_liste("UT", "Koppelmittel")
+                
+                pruef_norm_ut = st.selectbox("Prüf-Norm (UT)", ["-- Bitte wählen --"] + (normen_ut if normen_ut else []))
+                pruefkopf = st.selectbox("Prüfkopf / Frequenz", ["-- Bitte wählen --"] + (koepfe_ut if koepfe_ut else []))
+                koppelmittel = st.selectbox("Koppelmittel", ["-- Bitte wählen --"] + (koppel_ut if koppel_ut else []))
+                schallweg = st.text_input("Max. Schallweg", value="", placeholder="z.B. 100 mm...", key="ut_weg")
 
-            st.markdown("---")
-            ergebnis_ut = st.selectbox("Ergebnis (UT)", ["Without objection", "Not acceptable", "Conditionally acceptable"], key="ut_res")
-            bemerkung_ut = st.text_area("Bemerkung (UT)", placeholder="Reflektor-Hinweise...", key="ut_bem", height=80)
+                st.markdown("---")
+                ergebnis_ut = st.selectbox("Ergebnis (UT)", ["Without objection", "Not acceptable", "Conditionally acceptable"], key="ut_res")
+                bemerkung_ut = st.text_area("Bemerkung (UT)", placeholder="Reflektor-Hinweise...", key="ut_bem", height=70)
 
-            erfasste_parameter = {"Norm": pruef_norm_ut, "Prüfkopf": pruefkopf, "Koppelmittel": koppelmittel, "Schallweg": schallweg}
-            ergebnis = ergebnis_ut
-            bemerkung = bemerkung_ut
+                erfasste_parameter = {"Norm": pruef_norm_ut, "Prüfkopf": pruefkopf, "Koppelmittel": koppelmittel, "Schallweg": schallweg}
+                ergebnis = ergebnis_ut
+                bemerkung = bemerkung_ut
 
-        elif verfahren_titel == "PT-Prüfung":
-            normen_pt = db.get_stammdaten_liste("PT", "Prüf-Norm")
-            system_pt = db.get_stammdaten_liste("PT", "Eindringmittel System")
-            
-            pruef_norm_pt = st.selectbox("Prüf-Norm (PT)", ["-- Bitte wählen --"] + (normen_pt if normen_pt else []))
-            eindringmittel = st.selectbox("Eindringmittel System", ["-- Bitte wählen --"] + (system_pt if system_pt else []))
-            einwirkzeit = st.text_input("Einwirkzeit Eindringmittel", value="", placeholder="z.B. 15 min...", key="pt_zeit")
-            zwischenreinigung = st.text_input("Zwischenreinigung", value="", placeholder="z.B. Lösemittel...", key="pt_reinig")
+            elif verfahren_titel == "PT-Prüfung":
+                normen_pt = db.get_stammdaten_liste("PT", "Prüf-Norm")
+                system_pt = db.get_stammdaten_liste("PT", "Eindringmittel System")
+                
+                pruef_norm_pt = st.selectbox("Prüf-Norm (PT)", ["-- Bitte wählen --"] + (normen_pt if normen_pt else []))
+                eindringmittel = st.selectbox("Eindringmittel System", ["-- Bitte wählen --"] + (system_pt if system_pt else []))
+                einwirkzeit = st.text_input("Einwirkzeit Eindringmittel", value="", placeholder="z.B. 15 min...", key="pt_zeit")
+                zwischenreinigung = st.text_input("Zwischenreinigung", value="", placeholder="z.B. Lösemittel...", key="pt_reinig")
 
-            st.markdown("---")
-            ergebnis_pt = st.selectbox("Ergebnis (PT)", ["Without objection", "Not acceptable", "Conditionally acceptable"], key="pt_res")
-            bemerkung_pt = st.text_area("Bemerkung (PT)", placeholder="Anzeigen / Risse...", key="pt_bem", height=80)
+                st.markdown("---")
+                ergebnis_pt = st.selectbox("Ergebnis (PT)", ["Without objection", "Not acceptable", "Conditionally acceptable"], key="pt_res")
+                bemerkung_pt = st.text_area("Bemerkung (PT)", placeholder="Anzeigen / Risse...", key="pt_bem", height=70)
 
-            erfasste_parameter = {"Norm": pruef_norm_pt, "System": eindringmittel, "Einwirkzeit": einwirkzeit, "Zwischenreinigung": zwischenreinigung}
-            ergebnis = ergebnis_pt
-            bemerkung = bemerkung_pt
+                erfasste_parameter = {"Norm": pruef_norm_pt, "System": eindringmittel, "Einwirkzeit": einwirkzeit, "Zwischenreinigung": zwischenreinigung}
+                ergebnis = ergebnis_pt
+                bemerkung = bemerkung_pt
 
-# --- SPALTE 3: LIVE-VORSCHAU (RECHTS) ---
+# --- SPALTE 2: LIVE-VORSCHAU (RECHTS UNTEN) ---
 with col_rechts:
     st.subheader("📄 Live-Berichtsvorschau")
     
     with st.container(border=True):
-        st.markdown(f"### **{st.session_state.active_verfahren.upper()} - PROTOKOLL**")
+        st.markdown(f"### **{verfahren_titel.upper()} - PROTOKOLL**")
         st.caption("Zerstörungsfreie Prüfung (Kompaktansicht)")
         
         st.markdown("---")
         
-        current_active = st.session_state.active_auftrag if st.session_state.active_auftrag else new_nr.strip()
-        
-        if current_active != "" and order_data:
+        if current_active != "":
             st.markdown(
-                f"**Auftrag:** `{order_data['auftrag_nr']}` | **BK:** `{order_data.get('bk', '01')}`\n\n"
-                f"• **Teile-Nr:** {order_data['teile_nr']}\n"
-                f"• **Bezeichnung:** `{order_data['teilebezeichnung']}`\n"
-                f"• **Charge:** `{order_data['charge']}` (Fremd: `{order_data['fremdcharge']}`)\n"
-                f"• **Vorgabe:** {order_data['pruefvorgabe']}"
+                f"**Auftrag:** `{current_active}` | **BK:** `{new_bk}`\n\n"
+                f"• **Teile-Nr:** {new_teil}\n"
+                f"• **Bezeichnung:** `{new_bez}`\n"
+                f"• **Charge:** `{new_charge}` (Fremd: `{new_fremd}`)\n"
+                f"• **Vorgabe:** {new_vorgabe}"
             )
-        elif current_active != "":
-            st.markdown(f"**Auftrag:** `{current_active}` *(Manuelle Eingabe)*")
         else:
-            st.markdown("*Kein Auftrag ausgewählt*")
+            st.markdown("*Kein Auftrag eingegeben*")
             
         st.markdown("---")
         st.markdown("**Erfasste Parameter:**")
@@ -235,9 +186,8 @@ with col_rechts:
 
 st.divider()
 
-if st.button("Protokoll final generieren", type="primary"):
-    current_active = st.session_state.active_auftrag if st.session_state.active_auftrag else new_nr.strip()
+if st.button("Protokoll final generieren", type="primary", use_container_width=True):
     if current_active == "":
         st.error("Bitte gib zuerst einen Auftrag ein.")
     else:
-        st.success(f"Prüfprotokoll für {st.session_state.active_verfahren} erfolgreich im System gespeichert!")
+        st.success(f"Prüfprotokoll für {verfahren_titel} erfolgreich im System gespeichert!")
