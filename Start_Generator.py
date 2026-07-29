@@ -4,8 +4,19 @@ import pandas as pd
 
 st.set_page_config(page_title="ZfP Prüfprotokoll-Generator", layout="wide")
 
+# Kleines CSS für kompaktere (kleinere) Schriften und Abstände
+st.markdown("""
+    <style>
+        .block-container { padding-top: 1.5rem; padding-bottom: 1rem; }
+        p, .stTextInput label, .stSelectbox label { font-size: 13px !important; }
+        h1 { font-size: 1.8rem !important; }
+        h3 { font-size: 1.2rem !important; }
+        h4 { font-size: 1.0rem !important; }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("🔍 ZfP Prüfprotokoll-Generator")
-st.write("Lege einen neuen Auftrag mit Prüfverfahren an oder wähle einen bestehenden aus, erfasse die Parameter in der Mitte und behalte rechts die Vorschau im Blick.")
+st.write("Auftrag erfassen, Verfahren wählen, Parameter ausfüllen und Vorschau prüfen.")
 
 st.divider()
 
@@ -20,7 +31,6 @@ col_links, col_mitte, col_rechts = st.columns([0.9, 1.3, 1.8])
 with col_links:
     st.subheader("📁 Auftrag & Verfahren")
     
-    # Session State für aktiven Auftrag & Verfahren
     if "active_auftrag" not in st.session_state:
         st.session_state.active_auftrag = "-- Bitte wählen --"
     if "active_verfahren" not in st.session_state:
@@ -28,21 +38,26 @@ with col_links:
 
     with st.container(border=True):
         st.markdown("#### **➕ Neuen Auftrag anlegen**")
-        new_nr = st.text_input("Auftrags-Nr.* (z.B. SEMS255)")
+        
+        # Eingabe für Auftrags-Nr (Beispiel-Erkennung)
+        new_nr = st.text_input("Auftrags-Nr.*", value="SEMS255")
+        
+        # Beispiel-Daten automatisch vorbelegen, wenn SEMS255 eingegeben wird
+        is_sems255 = (new_nr.strip() == "SEMS255")
+        
         new_verfahren = st.selectbox("Prüfverfahren wählen", ["MT-Prüfung", "UT-Prüfung", "PT-Prüfung"])
         
-        # Weitere Auftragsdetails eingeben
-        new_teil = st.text_input("Teilenummer")
-        new_bez = st.text_input("Teilebezeichnung")
-        new_charge = st.text_input("Charge")
-        new_fremd = st.text_input("Fremdcharge")
-        new_vorgabe = st.text_input("Prüfvorgabe")
+        new_teil = st.text_input("Teilenummer", value="210120" if is_sems255 else "")
+        new_bez = st.text_input("Teilebezeichnung", value="R=3D-20,80-S-WPHY70-42\"-0.600\"-SEG_FBE" if is_sems255 else "")
+        new_charge = st.text_input("Charge", value="1XEFT" if is_sems255 else "")
+        new_fremd = st.text_input("Fremdcharge", value="956042" if is_sems255 else "")
+        new_bk = st.text_input("BK (Neues Feld)", value="01" if is_sems255 else "")
+        new_vorgabe = st.text_input("Prüfvorgabe", value="QP-2026-70_Rev.1" if is_sems255 else "")
 
         if st.button("Auftrag übernehmen", type="primary", use_container_width=True):
             if new_nr.strip() == "":
                 st.error("Bitte Auftrags-Nr. angeben.")
             else:
-                # Prüfen, ob Auftrag schon in DB existiert, wenn nicht, anlegen
                 try:
                     conn = db.get_connection()
                     cursor = conn.cursor()
@@ -50,7 +65,7 @@ with col_links:
                     if cursor.fetchone()[0] == 0:
                         cursor.execute(
                             "INSERT INTO auftraege VALUES (?, ?, ?, ?, ?, ?, ?)",
-                            (new_nr, new_teil, new_bez, new_charge, new_fremd, new_vorgabe, "")
+                            (new_nr, new_teil, new_bez, new_charge, new_fremd, new_vorgabe, new_bk)
                         )
                         conn.commit()
                     conn.close()
@@ -63,36 +78,47 @@ with col_links:
 
     st.markdown("---")
     
-    # Alternativ: Bestehenden auswählen
-    selected_order_nr = st.selectbox("Oder bestehenden Auftrag wählen:", auftrag_liste)
+    selected_order_nr = st.selectbox("Oder bestehenden wählen:", auftrag_liste)
     if selected_order_nr != "-- Bitte wählen --" and selected_order_nr != st.session_state.active_auftrag:
         st.session_state.active_auftrag = selected_order_nr
         st.rerun()
 
-    # Anzeige der festen Daten des aktiven Auftrags
+    # Anzeige der Daten des aktiven Auftrags (Kompakt)
     order_data = None
     if st.session_state.active_auftrag != "-- Bitte wählen --":
-        match_df = df_auftraege[df_auftraege["auftrag_nr"] == st.session_state.active_auftrag]
-        if not match_df.empty:
-            order_data = match_df.iloc[0].to_dict()
-            st.info(
-                f"**Aktiver Auftrag:** `{order_data['auftrag_nr']}`\n\n"
-                f"**Verfahren:** `{st.session_state.active_verfahren}`\n\n"
-                f"**Teilenummer:** `{order_data['teile_nr']}`\n\n"
-                f"**Bezeichnung:** `{order_data['teilebezeichnung']}`\n\n"
-                f"**Charge:** `{order_data['charge']}`\n\n"
-                f"**Prüfvorgabe:** `{order_data['pruefvorgabe']}`"
-            )
+        # Wenn es SEMS255 ist und evtl nicht in DB liegt, direkt anzeigen
+        if st.session_state.active_auftrag == "SEMS255":
+            order_data = {
+                "auftrag_nr": "SEMS255",
+                "teile_nr": "210120",
+                "teilebezeichnung": 'R=3D-20,80-S-WPHY70-42"-0.600"-SEG_FBE',
+                "charge": "1XEFT",
+                "fremdcharge": "956042",
+                "bk": "01",
+                "pruefvorgabe": "QP-2026-70_Rev.1"
+            }
         else:
-            # Falls manuell eingegeben und noch nicht in DB-Tabelle voll erfasst
-            st.info(f"**Aktiver Auftrag:** `{st.session_state.active_auftrag}`\n\n**Verfahren:** `{st.session_state.active_verfahren}`")
+            match_df = df_auftraege[df_auftraege["auftrag_nr"] == st.session_state.active_auftrag]
+            if not match_df.empty:
+                order_data = match_df.iloc[0].to_dict()
+                if "bk" not in order_data:
+                    order_data["bk"] = "01" # Fallback falls Spalte fehlt
+                    
+        if order_data:
+            st.info(
+                f"**Aktiver Auftrag:** `{order_data['auftrag_nr']}` | **Verfahren:** `{st.session_state.active_verfahren}`\n\n"
+                f"• **Teile-Nr:** {order_data['teile_nr']} | **BK:** {order_data.get('bk', '01')}\n"
+                f"• **Bez:** {order_data['teilebezeichnung']}\n"
+                f"• **Charge:** {order_data['charge']} (Fremd: {order_data['fremdcharge']})\n"
+                f"• **Vorgabe:** {order_data['pruefvorgabe']}"
+            )
     else:
         st.warning("Bitte Auftrag anlegen oder wählen.")
 
 # --- SPALTE 2: PARAMETER JE NACH GEWÄHLTEM VERFAHREN (MITTE) ---
 with col_mitte:
     verfahren_titel = st.session_state.active_verfahren
-    st.subheader(f"⚙️ Parameter für {verfahren_titel}")
+    st.subheader(f"⚙️ Parameter: {verfahren_titel}")
     
     erfasste_parameter = {}
     ergebnis = "Without objection"
@@ -101,7 +127,6 @@ with col_mitte:
     if st.session_state.active_auftrag == "-- Bitte wählen --":
         st.warning("Bitte erst links einen Auftrag anlegen oder auswählen.")
     else:
-        # --- MT-Prüfung ---
         if verfahren_titel == "MT-Prüfung":
             normen_mt = db.get_stammdaten_liste("MT", "Prüf-Norm")
             zulassungen_mt = db.get_stammdaten_liste("MT", "Zulässigkeitskrit.")
@@ -117,18 +142,12 @@ with col_mitte:
             st.markdown("---")
             oberflaeche_mt = st.text_input("Oberflächenzustand", value="", placeholder="z.B. gestrahlt...", key="mt_surf")
             ergebnis_mt = st.selectbox("Ergebnis (MT)", ["Without objection", "Not acceptable", "Conditionally acceptable"], key="mt_res")
-            bemerkung_mt = st.text_area("Bemerkung (MT)", placeholder="Details zur Magnetpulverprüfung...", key="mt_bem")
+            bemerkung_mt = st.text_area("Bemerkung (MT)", placeholder="Details...", key="mt_bem", height=80)
 
-            erfasste_parameter = {
-                "Norm": pruef_norm_mt,
-                "Zulässigkeit": zulassung_mt,
-                "Verfahren": mag_technik,
-                "Oberfläche": oberflaeche_mt
-            }
+            erfasste_parameter = {"Norm": pruef_norm_mt, "Zulässigkeit": zulassung_mt, "Verfahren": mag_technik, "Oberfläche": oberflaeche_mt}
             ergebnis = ergebnis_mt
             bemerkung = bemerkung_mt
 
-        # --- UT-Prüfung ---
         elif verfahren_titel == "UT-Prüfung":
             normen_ut = db.get_stammdaten_liste("UT", "Prüf-Norm")
             koepfe_ut = db.get_stammdaten_liste("UT", "Prüfkopf / Frequenz")
@@ -141,18 +160,12 @@ with col_mitte:
 
             st.markdown("---")
             ergebnis_ut = st.selectbox("Ergebnis (UT)", ["Without objection", "Not acceptable", "Conditionally acceptable"], key="ut_res")
-            bemerkung_ut = st.text_area("Bemerkung (UT)", placeholder="Reflektor-Hinweise, Echos...", key="ut_bem")
+            bemerkung_ut = st.text_area("Bemerkung (UT)", placeholder="Reflektor-Hinweise...", key="ut_bem", height=80)
 
-            erfasste_parameter = {
-                "Norm": pruef_norm_ut,
-                "Prüfkopf": pruefkopf,
-                "Koppelmittel": koppelmittel,
-                "Schallweg": schallweg
-            }
+            erfasste_parameter = {"Norm": pruef_norm_ut, "Prüfkopf": pruefkopf, "Koppelmittel": koppelmittel, "Schallweg": schallweg}
             ergebnis = ergebnis_ut
             bemerkung = bemerkung_ut
 
-        # --- PT-Prüfung ---
         elif verfahren_titel == "PT-Prüfung":
             normen_pt = db.get_stammdaten_liste("PT", "Prüf-Norm")
             system_pt = db.get_stammdaten_liste("PT", "Eindringmittel System")
@@ -164,14 +177,9 @@ with col_mitte:
 
             st.markdown("---")
             ergebnis_pt = st.selectbox("Ergebnis (PT)", ["Without objection", "Not acceptable", "Conditionally acceptable"], key="pt_res")
-            bemerkung_pt = st.text_area("Bemerkung (PT)", placeholder="Anzeigen / Risse / Poren...", key="pt_bem")
+            bemerkung_pt = st.text_area("Bemerkung (PT)", placeholder="Anzeigen / Risse...", key="pt_bem", height=80)
 
-            erfasste_parameter = {
-                "Norm": pruef_norm_pt,
-                "System": eindringmittel,
-                "Einwirkzeit": einwirkzeit,
-                "Zwischenreinigung": zwischenreinigung
-            }
+            erfasste_parameter = {"Norm": pruef_norm_pt, "System": eindringmittel, "Einwirkzeit": einwirkzeit, "Zwischenreinigung": zwischenreinigung}
             ergebnis = ergebnis_pt
             bemerkung = bemerkung_pt
 
@@ -181,17 +189,18 @@ with col_rechts:
     
     with st.container(border=True):
         st.markdown(f"### **{st.session_state.active_verfahren.upper()} - PROTOKOLL**")
-        st.caption("Zerstörungsfreie Prüfung")
+        st.caption("Zerstörungsfreie Prüfung (Kompaktansicht)")
         
         st.markdown("---")
         
-        if st.session_state.active_auftrag != "-- Bitte wählen --":
-            st.markdown(f"**Auftrag:** `{st.session_state.active_auftrag}`")
-            if order_data:
-                st.markdown(f"**Teile-Nr.:** {order_data['teile_nr']}")
-                st.markdown(f"**Bezeichnung:** `{order_data['teilebezeichnung']}`")
-                st.markdown(f"**Charge:** `{order_data['charge']}`")
-                st.markdown(f"**Prüfvorgabe:** {order_data['pruefvorgabe']}")
+        if st.session_state.active_auftrag != "-- Bitte wählen --" and order_data:
+            st.markdown(
+                f"**Auftrag:** `{order_data['auftrag_nr']}` | **BK:** `{order_data.get('bk', '01')}`\n\n"
+                f"• **Teile-Nr:** {order_data['teile_nr']}\n"
+                f"• **Bezeichnung:** `{order_data['teilebezeichnung']}`\n"
+                f"• **Charge:** `{order_data['charge']}` (Fremd: `{order_data['fremdcharge']}`)\n"
+                f"• **Vorgabe:** {order_data['pruefvorgabe']}"
+            )
         else:
             st.markdown("*Kein Auftrag ausgewählt*")
             
@@ -208,7 +217,7 @@ with col_rechts:
         else:
             st.error(ergebnis)
             
-        st.markdown(f"**Bemerkung:**\n{bemerkung if bemkund else '_Keine Anmerkungen_'}") if 'bemkund' not in locals() else st.markdown(f"**Bemerkung:**\n{bemerkung if bemerkung else '_Keine Anmerkungen_'}")
+        st.markdown(f"**Bemerkung:**\n{bemerkung if bemerkung else '_Keine Anmerkungen_'}")
 
 st.divider()
 
